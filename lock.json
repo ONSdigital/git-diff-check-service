@@ -1,0 +1,37 @@
+{
+    "memo": "026a669f27b8dcc27562825f391907f66147f6df87675f0814c07304d5578af0",
+    "projects": [
+        {
+            "name": "github.com/ONSdigital/git-diff-check",
+            "branch": "alpha",
+            "revision": "58f2f972324bccc9623a569b7c25e574d4a0e67f",
+            "packages": [
+                "diffcheck"
+            ]
+        },
+        {
+            "name": "github.com/gorilla/context",
+            "branch": "master",
+            "revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/gorilla/mux",
+            "branch": "master",
+            "revision": "757bef944d0f21880861c2dd9c871ca543023cba",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "gopkg.in/rjz/githubhook.v0",
+            "branch": "master",
+            "revision": "d5f019004f0a15c1c9be5ac3034071ba0dff5832",
+            "packages": [
+                "."
+            ]
+        }
+    ]
+}
