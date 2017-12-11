@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"syscall"
+	"time"
 
 	"github.com/ONSdigital/git-diff-check-service/api"
 	"github.com/ONSdigital/git-diff-check-service/signals"
@@ -146,12 +147,14 @@ func pushHandler(rw http.ResponseWriter, r *http.Request) {
 }
 
 func checkCommit(repo, sha string) {
-	log.Printf(`event="Checking commit" sha="%s"`, sha)
-
-	client := &http.Client{} // TODO - robust + api keys etc
 
 	bindLog := fmt.Sprintf(`repo="%s" sha="%s"`, repo, sha)
 
+	log.Printf(`event="Checking commit" %s`, bindLog)
+
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
 	resp, err := client.Get(githubURL + "/repos/" + repo + "/commits/" + sha)
 	if err != nil {
 		log.Printf(`event="Failed to retrieve commit info" %s error="%v"`, bindLog, err)
@@ -189,7 +192,11 @@ func checkCommit(repo, sha string) {
 				log.Printf(`event="Warning found" %s warning="%s" type="%s" line="%d"`, bindLog, warning.Description, warning.Type, warning.Line)
 			}
 		}
+		return
 	}
+
+	log.Printf(`event="No issues found in commit" %s`, bindLog)
+	return
 
 	// TODO - Need to actually do something sensible with the reports - like alert someone!
 	// TODO - Though splunk et al could be used in the short term to alert on logged above
