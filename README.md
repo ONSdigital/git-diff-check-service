@@ -26,6 +26,16 @@ The service requires the following environment variables to be set:
 | PORT           | `5000`            | The port number to run the service on |
 | WEBHOOK_SECRET | `thisIsABadSecret`| The secret key that was entered when setting up the webhook above |
 
+## API
+
+The service provides the following endpoints:
+
+- `/push` (`POST`) Receives a _push event_ webhook from github.
+  - Expects `Content-Type: application/json`
+  - Expects (https://developer.github.com/v3/activity/events/types/#pushevent) payload.
+  - Expects `X-Hub-Signature` header matching the configured `WEBHOOK_SECRET`
+  - Returns `200 OK` if ok
+  - Returns an api problem report and appropriate status code if an error occurs
 
 License
 =======
