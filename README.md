@@ -33,7 +33,7 @@ The service provides the following endpoints:
 - `/push` (`POST`) Receives a _push event_ webhook from github.
   - Expects `Content-Type: application/json`
   - Expects (https://developer.github.com/v3/activity/events/types/#pushevent) payload.
-  - Expects `X-Hub-Signature` header matching the configured `WEBHOOK_SECRET`
+  - Expects `X-Hub-Signature` containing message signature (payload signed with `WEBHOOK_SECRET`)
   - Returns `200 OK` if ok
   - Returns an api problem report and appropriate status code if an error occurs
 
