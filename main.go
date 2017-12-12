@@ -1,12 +1,16 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha1"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"syscall"
 	"time"
 
@@ -14,17 +18,18 @@ import (
 	"github.com/ONSdigital/git-diff-check-service/signals"
 	"github.com/ONSdigital/git-diff-check/diffcheck"
 
-	githubhook "gopkg.in/rjz/githubhook.v0"
-
 	"github.com/gorilla/mux"
 )
 
 var (
-	secret []byte // Webhook secret
+	// Webhook secret - configured from envrionment and must match the secret
+	// configured in github for the webhook.
+	secret []byte
 )
 
 const (
-	githubURL = "https://api.github.com"
+	githubURL       = "https://api.github.com"
+	signaturePrefix = "sha1="
 )
 
 type (
@@ -106,16 +111,20 @@ func main() {
 
 	// Webserver
 	r := mux.NewRouter()
-	r.HandleFunc("/push", pushHandler)
+	setupRoutes(r)
 	http.Handle("/", r)
 	log.Printf(`event="Started" port="%s"`, port)
 	log.Fatalf(`event="Stopped" error="%v"`, http.ListenAndServe(":"+port, nil))
 }
 
+func setupRoutes(r *mux.Router) {
+	r.HandleFunc("/push", pushHandler)
+}
+
 func pushHandler(rw http.ResponseWriter, r *http.Request) {
 	log.Println(`event="Received push event"`)
 
-	hook, err := githubhook.Parse(secret, r)
+	payload, err := parseHook(r, secret)
 	if err != nil {
 		log.Printf(`event="Error parsing hook" error="%v"`, err)
 		api.WriteProblemResponse(api.Problem{
@@ -126,7 +135,7 @@ func pushHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	var pushEvent PushEvent
-	if err := json.Unmarshal(hook.Payload, &pushEvent); err != nil {
+	if err := json.Unmarshal(payload, &pushEvent); err != nil {
 		log.Printf(`event="Error parsing hook payload" error="%v"`, err)
 		api.WriteProblemResponse(api.Problem{
 			Title:  "Failed to unmarshal payload",
@@ -149,7 +158,6 @@ func pushHandler(rw http.ResponseWriter, r *http.Request) {
 func checkCommit(repo, sha string) {
 
 	bindLog := fmt.Sprintf(`repo="%s" sha="%s"`, repo, sha)
-
 	log.Printf(`event="Checking commit" %s`, bindLog)
 
 	client := &http.Client{
@@ -162,7 +170,7 @@ func checkCommit(repo, sha string) {
 		return
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // TODO not needed?
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -200,4 +208,35 @@ func checkCommit(repo, sha string) {
 
 	// TODO - Need to actually do something sensible with the reports - like alert someone!
 	// TODO - Though splunk et al could be used in the short term to alert on logged above
+}
+
+func parseHook(r *http.Request, secret []byte) ([]byte, error) {
+	var signature string
+	if signature = r.Header.Get("x-hub-signature"); !strings.HasPrefix(signature, signaturePrefix) {
+		return nil, errors.New("missing x-hub-signature")
+	}
+	signature = strings.TrimLeft(signature, signaturePrefix)
+
+	var event string
+	if event = r.Header.Get("x-github-event"); event != "push" {
+		return nil, errors.New("missing or non-push x-github-event")
+	}
+
+	payload, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if signPayload(payload, secret) == signature {
+		return payload, nil
+	}
+	return nil, errors.New("signature check failed")
+}
+
+func signPayload(payload, secret []byte) string {
+	computed := hmac.New(sha1.New, secret)
+	computed.Write(payload)
+	// Return the hex encoded representation of the signature so it can be
+	// plugged directly into a header (and compared with an existing header)
+	return fmt.Sprintf("%x", computed.Sum(nil))
 }
