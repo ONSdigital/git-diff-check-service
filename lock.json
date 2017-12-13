@@ -4,15 +4,16 @@
         {
             "name": "github.com/ONSdigital/git-diff-check",
             "branch": "alpha",
-            "revision": "58f2f972324bccc9623a569b7c25e574d4a0e67f",
+            "revision": "4bab7e6504ccf7196af0eb277fd9b44d7253c8f4",
             "packages": [
-                "diffcheck"
+                "diffcheck",
+                "rule"
             ]
         },
         {
             "name": "github.com/gorilla/context",
-            "branch": "master",
-            "revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
+            "version": "v1.1",
+            "revision": "1ea25387ff6f684839d82767c1733ff4d4d15d0a",
             "packages": [
                 "."
             ]
@@ -20,7 +21,7 @@
         {
             "name": "github.com/gorilla/mux",
             "branch": "master",
-            "revision": "757bef944d0f21880861c2dd9c871ca543023cba",
+            "revision": "5ab525f4fb1678e197ae59401e9050fa0b6cb5fd",
             "packages": [
                 "."
             ]
