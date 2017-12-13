@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/hmac"
 	"crypto/sha1"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -227,16 +228,18 @@ func parseHook(r *http.Request, secret []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	if signPayload(payload, secret) == signature {
+	// Use ConstantTimeCompare to mitigate possible timing attacks if
+	// we were to use plain ==
+	if subtle.ConstantTimeCompare(signPayload(payload, secret), []byte(signature)) == 1 {
 		return payload, nil
 	}
 	return nil, errors.New("signature check failed")
 }
 
-func signPayload(payload, secret []byte) string {
+func signPayload(payload, secret []byte) []byte {
 	computed := hmac.New(sha1.New, secret)
 	computed.Write(payload)
 	// Return the hex encoded representation of the signature so it can be
 	// plugged directly into a header (and compared with an existing header)
-	return fmt.Sprintf("%x", computed.Sum(nil))
+	return []byte(fmt.Sprintf("%x", computed.Sum(nil)))
 }

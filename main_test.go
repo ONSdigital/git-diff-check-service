@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/subtle"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -44,7 +46,7 @@ func TestPush(t *testing.T) {
 		t.Fatal("Failed to create http post:", err)
 	}
 	req.Header.Set("Content-Tyoe", "application/json")
-	req.Header.Set("x-hub-signature", "sha1="+signature)
+	req.Header.Set("x-hub-signature", fmt.Sprintf("sha1=%s", signature))
 	req.Header.Set("x-github-event", "push")
 	req.Header.Set("x-github-delivery", "667142b0-df17-11e7-9c7f-1ab48d642359") // fake
 
@@ -68,9 +70,10 @@ func TestPush(t *testing.T) {
 }
 
 func TestUtilities(t *testing.T) {
-	expected := "5d61605c3feea9799210ddcb71307d4ba264225f"
+	expected := []byte("5d61605c3feea9799210ddcb71307d4ba264225f")
 	payload := []byte("{}")
-	if s := signPayload(payload, secret); s != expected {
+	s := signPayload(payload, secret)
+	if subtle.ConstantTimeCompare(s, expected) != 1 {
 		t.Errorf("Signature compute incorrect, got %s, expected %s", s, expected)
 	}
 }
