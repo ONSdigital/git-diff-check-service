@@ -181,12 +181,22 @@ func checkCommit(repo, sha string) {
 
 	defer resp.Body.Close() // TODO not needed?
 
+	if resp.StatusCode != http.StatusOK {
+		// TODO Private repositories not supported yet
+		log.Printf(`event="Commit non-existent or on private repo" %s status_code="%d"`, bindLog, resp.StatusCode)
+		// TODO need to determine what to do if this fails
+		return
+	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf(`event="Failed to retrieve commit info" %s error="%v"`, bindLog, err)
 		// TODO need to determine what to do if this fails
 		return
 	}
+
+	// TODO More robust checking that info returned is valid
+	// ...
 
 	var c Commit
 	if err := json.Unmarshal(body, &c); err != nil {
