@@ -53,7 +53,7 @@ cf_space: my-space
 ```
 
 ```shell
-$ fly -t <concourse_name> set-pipeline --config pipeline.yml --pipeline sdx-pony --load-vars-from credentials.yml
+$ fly -t <concourse_name> set-pipeline --config pipeline.yml --pipeline git-diff-check-service --load-vars-from credentials.yml
 ```
 
 License
