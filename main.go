@@ -120,6 +120,14 @@ func main() {
 
 func setupRoutes(r *mux.Router) {
 	r.HandleFunc("/push", pushHandler)
+	r.HandleFunc("/healthcheck", healthHandler)
+}
+
+func healthHandler(rw http.ResponseWriter, r *http.Request) {
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Write([]byte(`{"healthy":true}`))
+	rw.WriteHeader(http.StatusOK)
+	return
 }
 
 func pushHandler(rw http.ResponseWriter, r *http.Request) {

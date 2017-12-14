@@ -1,0 +1,32 @@
+resources:
+- name: git-diff-check-service
+  type: git
+  source:
+    uri: https://github.com/ONSdigital/git-diff-check-service.git
+    branch: alpha
+
+
+- name: cf-deploy
+  type: cf
+  source:
+    api: {{cf_api_url}}
+    username: {{cf_username}}
+    password: {{cf_password}}
+    organization: {{cf_organisation}}
+    space: {{cf_space}}
+    skip_cert_check: true
+
+
+jobs:
+- name: test-and-deploy
+  plan:
+  - get: git-diff-check-service
+    trigger: true
+  - task: tests
+    file: git-diff-check-service/ci/build.yml
+  - put: cf-deploy
+    params:
+      manifest: git-diff-check-service/manifest.yml
+      path: git-diff-check-service
+      environment_variables:
+        WEBHOOK_SECRET: {{webhook_secret}}

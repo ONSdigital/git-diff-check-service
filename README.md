@@ -37,6 +37,25 @@ The service provides the following endpoints:
   - Returns `200 OK` if ok
   - Returns an api problem report and appropriate status code if an error occurs
 
+## Concourse pipeline
+
+  - Provides a pipeline for deploying to a cloud foundry instance
+  - Requires a running concourse instance
+  - Pipeline code is found under `/ci`
+  - Requires a `credentials.yml` file containing your cloud foundry credentials
+
+```yaml
+cf_api_url: https://example.com
+cf_username: username
+cf_password: password
+cf_organisation: my-org
+cf_space: my-space
+```
+
+```shell
+$ fly -t <concourse_name> set-pipeline --config pipeline.yml --pipeline sdx-pony --load-vars-from credentials.yml
+```
+
 License
 =======
 
