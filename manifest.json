@@ -5,9 +5,6 @@
         },
         "github.com/gorilla/mux": {
             "branch": "master"
-        },
-        "gopkg.in/rjz/githubhook.v0": {
-            "branch": "master"
         }
     }
 }
