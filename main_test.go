@@ -35,7 +35,6 @@ func TestPush(t *testing.T) {
 	// parse the parameters from it.
 	url := ts.URL + "/push"
 
-	// TODO
 	var jsonPayload = exampleHook
 
 	// Sign the body so it'll be accepted
