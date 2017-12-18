@@ -62,9 +62,15 @@ func main() {
 	// Webserver
 	r := mux.NewRouter()
 	setupRoutes(r)
-	http.Handle("/", r)
 	log.Printf(`event="Started" port="%s"`, port)
-	log.Fatalf(`event="Stopped" error="%v"`, http.ListenAndServe(":"+port, nil))
+
+	srv := &http.Server{
+		Addr:         fmt.Sprintf(":%s", port),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		Handler:      r,
+	}
+	log.Fatalf(`event="Stopped" error="%v"`, srv.ListenAndServe())
 }
 
 func setupRoutes(r *mux.Router) {
