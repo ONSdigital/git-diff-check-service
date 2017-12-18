@@ -89,6 +89,8 @@ func pushHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rw.WriteHeader(http.StatusOK)
+
 	switch e := event.(type) {
 	case *githook.PingEvent:
 		log.Printf(`event="Received hook event" type="ping" repo="%s"`, e.Repository.FullName)
@@ -102,7 +104,6 @@ func pushHandler(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	rw.WriteHeader(http.StatusOK)
 	return
 }
 
