@@ -10,7 +10,7 @@ import (
 type Problem struct {
 	Type   string `json:"type,omitempty"`   // Link to a resource for the problem
 	Title  string `json:"title,omitempty"`  // Short description of the issue
-	Status int    `json:"status,omitempty"` // The http status code
+	Status int    `json:"status"`           // The http status code
 	Detail string `json:"detail,omitempty"` // Further human-readable detail
 }
 
@@ -23,6 +23,9 @@ func WriteProblemResponse(problem Problem, rw http.ResponseWriter) {
 		log.Printf(`event="Error writing problem reponse" error="%v"`, err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+	if problem.Status == 0 {
+		problem.Status = http.StatusInternalServerError
 	}
 	rw.Header().Set("Content-Type", "application/problem+json")
 	rw.Header().Set("Content-Language", "en")
