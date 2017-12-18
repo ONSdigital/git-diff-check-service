@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -97,7 +96,6 @@ var (
 func Parse(r *http.Request, secret []byte) (interface{}, error) {
 
 	if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
-		log.Println("GOT", contentType)
 		return nil, ErrUnsupportedContentType
 	}
 
