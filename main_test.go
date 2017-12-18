@@ -59,7 +59,7 @@ func TestPush(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// t.Errorf("unexpected status response, got %d, expected %d", resp.StatusCode, http.StatusOK)
+		t.Errorf("unexpected status response, got %d, expected %d", resp.StatusCode, http.StatusOK)
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
