@@ -1,15 +1,17 @@
+// Package diffcheck provides functions for checking a git diff for potentially
+// sensitive information.
 package diffcheck
 
 import (
 	"bufio"
 	"bytes"
 	"io"
-	"log"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/ONSdigital/git-diff-check/entropy"
 	"github.com/ONSdigital/git-diff-check/rule"
 )
 
@@ -17,16 +19,28 @@ type (
 	// Warning is a specific warning about a file in diff. One or more are compiled
 	// into a `Report`
 	Warning struct {
-		Type        string
-		Description string // Human compatible warning description
-		Line        int    // Line number (if applicable) where the warning was triggered. If no line then will be -1
+		// The ruleset type that triggered the warning. e.g. "file" or "line"
+		Type string
+
+		// Human compatible warning description
+		Description string
+
+		// Line number (if applicable) where the warning was triggered.
+		// If no line then will be -1
+		Line int
 	}
 
 	// Report is a collection of warnings for a particular file discovered in
 	// a patch
 	Report struct {
-		Path     string
-		OldPath  string // Differs with Path is file has been moved/renamed
+		// Current relative path of the file to which the report pertains
+		Path string
+
+		// Old path of the file - will be identical unless the file has been
+		// moved/renamed as part of the changeset
+		OldPath string
+
+		// Set of warnings pertaining to this report
 		Warnings []Warning
 	}
 )
@@ -41,7 +55,9 @@ const (
 )
 
 // SnoopPatch takes a raw github patch byte array and tests it against the
-// defined rulesets
+// defined rulesets. Returns true if diff appears clean and false otherwise. In
+// the case of a potentially unclean diff, a report set will also be returned
+// detailing a set of warnings identified.
 func SnoopPatch(patch []byte) (bool, []Report, error) {
 
 	reader := bufio.NewReader(bytes.NewReader(patch))
@@ -52,17 +68,30 @@ func SnoopPatch(patch []byte) (bool, []Report, error) {
 	inHunk := false
 	linePosition := 0
 
+	var tmp []byte
+
 	for {
 		line, isPrefix, err := reader.ReadLine()
 		if isPrefix {
-			// TODO Conscious decision not to handle this yet - should be addressed!
-			log.Fatal("Unable to handle long lines")
+			// Long line. Temporarily store what we have and pick up the next
+			// chunk on the next pass.
+			if tmp == nil {
+				tmp = make([]byte, len(line))
+			}
+			tmp = append(tmp, line...)
+			continue
 		}
 		if err == io.EOF {
 			if len(report.Warnings) > 0 {
 				reports = append(reports, report)
 			}
 			break
+		}
+		if tmp != nil {
+			// If we have temporarily stored long line data then dump it back out to the
+			// line and continue
+			line = append(tmp, line...)
+			tmp = nil
 		}
 
 		// Check whether we're starting a new file block section of the patch or
@@ -134,10 +163,16 @@ func checkLineBytes(line []byte, position int) (bool, []Warning) {
 
 	warnings := []Warning{}
 
+	// Normal line rulesets
 	for _, rule := range rule.Sets["line"] {
 		if rule.Regex.Match(line) {
 			warnings = append(warnings, Warning{Type: "line", Description: rule.Caption, Line: position})
 		}
+	}
+
+	// Entropy check
+	if ok, _ := entropy.Check(line); !ok {
+		warnings = append(warnings, Warning{Type: "line", Description: "Possible key in high entropy string", Line: position})
 	}
 
 	if len(warnings) > 0 {
@@ -187,7 +222,7 @@ func checkFile(path string) (bool, []Warning) {
 	if len(warnings) > 0 {
 		return false, warnings
 	}
-	return false, nil
+	return true, nil
 }
 
 // Returns the actual filename and previous filename (which may or may not

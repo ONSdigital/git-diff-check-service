@@ -1,6 +1,8 @@
 package diffcheck_test
 
 import (
+	"fmt"
+	"os/exec"
 	"testing"
 
 	"github.com/ONSdigital/git-diff-check/diffcheck"
@@ -9,6 +11,7 @@ import (
 type testCase struct {
 	Name            string
 	ExpectedReports []diffcheck.Report
+	OK              bool
 	Patch           []byte
 }
 
@@ -23,8 +26,9 @@ func TestSnoopPatch(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected no error, but got: %v", err)
 		}
-		if ok {
-			t.Errorf("Expected warning to be flagged, but got: %v", ok)
+
+		if ok != tc.OK {
+			t.Errorf("Got result %v, but got %v", ok, tc.OK)
 		}
 
 		if len(reports) != len(tc.ExpectedReports) {
@@ -38,7 +42,7 @@ func TestSnoopPatch(t *testing.T) {
 			shouldEqual("old path", gotReport.OldPath, expected.OldPath, t)
 
 			if len(expected.Warnings) != len(gotReport.Warnings) {
-				t.Errorf("Incorrect number of warnings in report, got %d, expected %d", len(expected.Warnings), len(gotReport.Warnings))
+				t.Errorf("Incorrect number of warnings in report, got %d, expected %d", len(gotReport.Warnings), len(expected.Warnings))
 			}
 
 			for j, expWarning := range expected.Warnings {
@@ -53,12 +57,14 @@ func TestSnoopPatch(t *testing.T) {
 }
 
 func shouldEqual(field, got, expected string, t *testing.T) {
+	t.Logf("    %s should equal %s", field, expected)
 	if got != expected {
 		t.Errorf("Expected %s to be %s, but got %s", field, expected, got)
 	}
 }
 
 func shouldEqualInt(field string, got, expected int, t *testing.T) {
+	t.Logf("    %s should equal %d", field, expected)
 	if got != expected {
 		t.Errorf("Expected %s to be %d, but got %d", field, expected, got)
 	}
@@ -66,7 +72,18 @@ func shouldEqualInt(field string, got, expected int, t *testing.T) {
 
 var testCases = []testCase{
 	testCase{
+		Name:            "a totally fine file",
+		OK:              true,
+		ExpectedReports: nil,
+		Patch: []byte(`
+diff --git a/diffcheck/README.md b/diffcheck/README.md
+new file mode 100644
+index 0000000..e69de29
+			`),
+	},
+	testCase{
 		Name: "a potentially bad filename",
+		OK:   false,
 		ExpectedReports: []diffcheck.Report{
 			{
 				Path:    "diffcheck/key.pem",
@@ -88,6 +105,7 @@ index 0000000..e69de29
 	},
 	testCase{
 		Name: "a potential AWS key",
+		OK:   false,
 		ExpectedReports: []diffcheck.Report{
 			{
 				Path:    ".aws/credentials",
@@ -108,6 +126,11 @@ index 0000000..e69de29
 						Line:        6,
 						Description: "Possible AWS Access Key",
 					},
+					{
+						Type:        "line",
+						Line:        7,
+						Description: "Possible key in high entropy string",
+					},
 				},
 			},
 		},
@@ -120,6 +143,25 @@ index e69de29..92251f8 100644
 
 # Shhh
 aws=AKIA7362373827372737
+secret=ZWVTjPQSdhwRgl204Hc51YCsritMIzn8B=/p9UyeX7xu6KkAGqfm3FJ+oObLDNEva
 		`),
 	},
+}
+
+func ExampleSnoopPatch() {
+	patch, _ := exec.Command("git", "diff", "-U0", "--staged").CombinedOutput()
+
+	ok, reports, err := diffcheck.SnoopPatch(patch)
+	if err != nil {
+		panic(err)
+	}
+	if !ok {
+		fmt.Println("WARNING! Potential sensitive data found:")
+		for _, r := range reports {
+			fmt.Printf("Found in (%s)\n", r.Path)
+			for _, w := range r.Warnings {
+				fmt.Printf("\t> [%s] %s (line %d)\n", w.Type, w.Description, w.Line)
+			}
+		}
+	}
 }

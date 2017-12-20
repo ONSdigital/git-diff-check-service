@@ -22,7 +22,7 @@
 
 
 [[constraint]]
-  branch = "alpha"
+  branch = "alpha-entropy"
   name = "github.com/ONSdigital/git-diff-check"
 
 [[constraint]]
