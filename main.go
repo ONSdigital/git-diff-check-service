@@ -28,6 +28,10 @@ const (
 	githubURL = "https://api.github.com"
 )
 
+func init() {
+	log.SetOutput(os.Stdout)
+}
+
 func main() {
 
 	// Signals
